@@ -54,7 +54,7 @@ namespace Services.CountryService
 
         #endregion
 
-        #region GetAllCountries
+        #region GetCountries
         List<CountryResponseDto> ICountriesService.GetAllCountries()
         {
             List<CountryResponseDto> countryResponseList = _mapper.Map<List<CountryResponseDto>>(_countries);
@@ -69,6 +69,7 @@ namespace Services.CountryService
 
             return _mapper.Map<CountryResponseDto>(country);
         }
+
         #endregion
     }
 }
