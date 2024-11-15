@@ -1,0 +1,64 @@
+﻿@model IEnumerable<PersonResponseDto>
+
+@{
+    ViewBag.Title = "Persons";
+    
+  
+}
+
+<form action="~/persons/index" method="get">
+    <h1>Persons</h1>
+    <a href="~/persons/create">Create Person</a>
+    <div class="box flex">
+        <div class="flex-1">
+            <select class="form-input" name="searchBy">
+                @foreach (var field in ViewBag.SearchFields)
+                {
+                    if (field.Key == ViewBag.CurrentSearchBy)
+                    {
+                        <option selected="selected" value="@field.Key">@field.Value</option>
+                    }
+                    else
+                    {
+                        <option value="@field.Key">@field.Value</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="flex-1">
+            <input type="search" value="@ViewBag.CurrentSearchBy" name="searchString" placeholder="search" id="search" class="form-input" />
+        </div>
+        <div class="flex-1">
+            <button class="button button-blue-back">Search</button>
+            <a href="~/persons/index" class="link-hover">Clear All</a>
+        </div>
+    </div>
+    <table class="table w-100 mt">
+        <thead>
+            @foreach (var item in ViewBag.HeaderDict)
+             {
+                 @await Html.PartialAsync("_GridColumnHeader", 
+                 new ViewDataDictionary(ViewData)
+                 {
+                    {"ColumnName",item.Value},
+                    {"DisplayName",item.Key}
+                 })
+             }
+        </thead>
+        <tbody>
+            @foreach (PersonResponseDto person in Model)
+            {
+                <tr>
+                    <td>@person.PersonName</td>
+                    <td>@person.Email</td>
+                    <td>@person.Dob?.ToString("dd MMM yyyy")</td>
+                    <td>@person.Age</td>
+                    <td>@person.Gender</td>
+                    <td>@person.Country</td>
+                    <td>@person.Address</td>
+                    <td>@person.ReceiveNewsLetters</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</form>

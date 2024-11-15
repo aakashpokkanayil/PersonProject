@@ -12,6 +12,7 @@ using Services.PersonService;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Formats.Asn1;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -35,15 +36,15 @@ namespace ProjectTest.PersonUnitTests
         public PersonsServiceTest()
         {
             _mockMapper = new Mock<IMapper>();
-            _countriesService = new CountriesService(_mockMapper.Object);
-            _personsService = new PersonsServices(_mockMapper.Object, _countriesService);
+            _countriesService = new CountriesService(_mockMapper.Object,null);
+            _personsService = new PersonsServices(_mockMapper.Object, _countriesService,null);
 
             Initializeobjects();
             mockPersonMapper();
             mockCountryMapper();
         }
         #region PrivateMethods
-        private void mockPersonMapper()
+        private async Task  mockPersonMapper()
         {
             _mockMapper.Setup(m => m.Map<Person>(It.IsAny<PersonAddRequestDto>()))
                 .Returns<PersonAddRequestDto>((req) => new Person
@@ -52,7 +53,7 @@ namespace ProjectTest.PersonUnitTests
                     Email = req.Email,
                     Address = req.Address,
                     CountryId = req.CountryId,
-                    Gender = (Entities.Enum.Gender?)req.Gender,
+                    Gender = req.Gender.ToString(),
                     Dob = req.Dob,
                     ReceiveNewsLetters = req.ReceiveNewsLetters
                 });
@@ -65,7 +66,7 @@ namespace ProjectTest.PersonUnitTests
                     Dob = p.Dob,
                     Address = p.Address,
                     CountryId = p.CountryId,
-                    Gender = (Gender?)p.Gender,
+                    Gender = p.Gender,
                     ReceiveNewsLetters = p.ReceiveNewsLetters
                 });
             _mockMapper.Setup(m => m.Map<List<PersonResponseDto>>(It.IsAny<List<Person>>()))
@@ -77,13 +78,13 @@ namespace ProjectTest.PersonUnitTests
                     Dob = pRes.Dob,
                     Address = pRes.Address,
                     CountryId = pRes.CountryId,
-                    Gender = (Gender?)pRes.Gender,
+                    Gender = pRes.Gender,
                     ReceiveNewsLetters = pRes.ReceiveNewsLetters
                 }).ToList());
 
         }
 
-        private void mockCountryMapper()
+        private async Task  mockCountryMapper()
         {
             _mockMapper.Setup(m => m.Map<Country>(It.IsAny<CountryAddRequestDto>()))
                 .Returns<CountryAddRequestDto>((cReq) => new Country()
@@ -98,21 +99,21 @@ namespace ProjectTest.PersonUnitTests
                });
         }
 
-        private void AddPersonDetails()
+        private async Task AddPersonDetails()
         {
-            CountryResponseDto country1 = _countriesService.AddCountry(_countryAddRequestDto);
-            CountryResponseDto country2 = _countriesService.AddCountry(_countryAddRequestDto2);
-            CountryResponseDto country3 = _countriesService.AddCountry(_countryAddRequestDto3);
+            CountryResponseDto country1 = await _countriesService.AddCountry(_countryAddRequestDto);
+            CountryResponseDto country2 = await _countriesService.AddCountry(_countryAddRequestDto2);
+            CountryResponseDto country3 = await _countriesService.AddCountry(_countryAddRequestDto3);
             _personAddRequestDto.CountryId = country1.CountryId;
             _personAddRequestDto2.CountryId = country2.CountryId;
             _personAddRequestDto3.CountryId = country3.CountryId;
 
-            _personsService.AddPerson(_personAddRequestDto);
-            _personsService.AddPerson(_personAddRequestDto2);
-            _personsService.AddPerson(_personAddRequestDto3);
+            await _personsService.AddPerson(_personAddRequestDto);
+            await _personsService.AddPerson(_personAddRequestDto2);
+            await _personsService.AddPerson(_personAddRequestDto3);
         }
 
-        private void Initializeobjects()
+        private async Task  Initializeobjects()
         {
             _countryAddRequestDto = new CountryAddRequestDto() { CountryName = "Canada" };
             _countryAddRequestDto2 = new CountryAddRequestDto() { CountryName = "India" };
@@ -164,23 +165,23 @@ namespace ProjectTest.PersonUnitTests
         #region AddPerson
 
         [Fact]
-        public void AddPerson_NullPerson()
+        public async Task  AddPerson_NullPerson()
         {
             // Arrange
             PersonAddRequestDto? personAddRequestDto = null;
 
             // Assert
-            Assert.Throws<ArgumentNullException>(() =>
+            await Assert.ThrowsAsync<ArgumentNullException>(async () =>
             {
                 //Act
-                _personsService.AddPerson(personAddRequestDto);
+               await _personsService.AddPerson(personAddRequestDto);
             });
 
 
         }
 
         [Fact]
-        public void AddPerson_PersonNameNull()
+        public async Task  AddPerson_PersonNameNull()
         {
             //Arrange
             PersonAddRequestDto personAddRequestDto = new PersonAddRequestDto()
@@ -189,26 +190,26 @@ namespace ProjectTest.PersonUnitTests
             };
 
             //Assert
-            Assert.Throws<ArgumentException>(() =>
+            await Assert.ThrowsAsync<ArgumentException>(async () =>
             {
                 //Act
-                _personsService.AddPerson(personAddRequestDto);
+               await _personsService.AddPerson(personAddRequestDto);
             });
         }
 
 
 
         [Fact]
-        public void AddPerson_WithProperDetails()
+        public async Task  AddPerson_WithProperDetails()
         {
             //Arrange
 
 
             //Act
 
-            PersonResponseDto? actualPersonResponse = _personsService.AddPerson(_personAddRequestDto);
+            PersonResponseDto? actualPersonResponse = await _personsService.AddPerson(_personAddRequestDto);
 
-            List<PersonResponseDto>? expectedPersonResponseList = _personsService.GetAllPerson();
+            List<PersonResponseDto>? expectedPersonResponseList = await _personsService.GetAllPerson();
 
             //Assert
             Assert.True(actualPersonResponse?.PersonId != Guid.Empty);
@@ -219,24 +220,24 @@ namespace ProjectTest.PersonUnitTests
 
         #region GetAllPerson
         [Fact]
-        public void GetAllPerson_NullList()
+        public async Task  GetAllPerson_NullList()
         {
             //Arrange
 
             //Act
-            List<PersonResponseDto>? personResponseDto = _personsService.GetAllPerson();
+            List<PersonResponseDto>? personResponseDto = await _personsService.GetAllPerson();
             //Assert
             Assert.Empty(personResponseDto);
         }
         [Fact]
-        public void GetAllPerson_WithProperdetails()
+        public async Task  GetAllPerson_WithProperdetails()
         {
             //Arrange
-            CountryResponseDto countryResponseDto = _countriesService.AddCountry(_countryAddRequestDto);
+            CountryResponseDto countryResponseDto = await _countriesService.AddCountry(_countryAddRequestDto);
             _personAddRequestDto.CountryId = countryResponseDto.CountryId;
-            PersonResponseDto? personResponse = _personsService.AddPerson(_personAddRequestDto);
+            PersonResponseDto? personResponse = await _personsService.AddPerson(_personAddRequestDto);
             //Act
-            List<PersonResponseDto>? personResponseList = _personsService.GetAllPerson();
+            List<PersonResponseDto>? personResponseList = await _personsService.GetAllPerson();
             //Assert
             Assert.NotNull(personResponseList);
             Assert.Contains(personResponse, personResponseList);
@@ -245,26 +246,26 @@ namespace ProjectTest.PersonUnitTests
         #endregion
 
         #region GetPersonById
-        public void GetPersonById_NullPersonId()
+        public async Task  GetPersonById_NullPersonId()
         {
             // Arrange
             Guid? personID = null;
             // Act
-            PersonResponseDto? personResponseDto = _personsService.GetPersonById(personID);
+            PersonResponseDto? personResponseDto = await _personsService.GetPersonById(personID);
             // Assert
             Assert.Null(personResponseDto);
 
         }
         [Fact]
-        public void GetPersonById_WithProperId()
+        public async Task  GetPersonById_WithProperId()
         {
             // Arrange
-            CountryResponseDto countryResponseDto = _countriesService.AddCountry(_countryAddRequestDto);
-            PersonResponseDto? expectedPersonResponse = _personsService.AddPerson(_personAddRequestDto);
+            CountryResponseDto countryResponseDto = await _countriesService.AddCountry(_countryAddRequestDto);
+            PersonResponseDto? expectedPersonResponse = await _personsService.AddPerson(_personAddRequestDto);
 
 
             // Act
-            PersonResponseDto? actualPersonResponse = _personsService.GetPersonById(expectedPersonResponse?.PersonId);
+            PersonResponseDto? actualPersonResponse = await _personsService.GetPersonById(expectedPersonResponse?.PersonId);
             // Assert
             Assert.Equal(expectedPersonResponse, actualPersonResponse);
 
@@ -274,18 +275,18 @@ namespace ProjectTest.PersonUnitTests
 
         #region GetPersonFiltered
         [Fact]
-        public void GetFilteredPerson_EmptySearchTest()
+        public async Task  GetFilteredPerson_EmptySearchTest()
         {
             //Arrange
 
             AddPersonDetails();
 
-            List<PersonResponseDto> expectedPersonResponseList = _personsService.GetAllPerson();
+            List<PersonResponseDto> expectedPersonResponseList = await _personsService.GetAllPerson();
 
             //Act
 
             List<PersonResponseDto> actualPersonResponseList= 
-                _personsService.GetPersonByFilter(nameof(Person.PersonName),"");
+               await _personsService.GetPersonByFilter(nameof(Person.PersonName),"");
 
             // Assert
 
@@ -300,18 +301,18 @@ namespace ProjectTest.PersonUnitTests
         }
 
         [Fact]
-        public void GetFilteredPerson_SearchByPersonName()
+        public async Task  GetFilteredPerson_SearchByPersonName()
         {
             //Arrange
 
             AddPersonDetails();
 
-            List<PersonResponseDto> expectedPersonResponseList = _personsService.GetAllPerson();
+            List<PersonResponseDto> expectedPersonResponseList = await _personsService.GetAllPerson();
 
             //Act
 
             List<PersonResponseDto> actualPersonResponseList =
-                _personsService.GetPersonByFilter(nameof(Person.PersonName), "v");
+               await _personsService.GetPersonByFilter(nameof(Person.PersonName), "v");
 
             // Assert
 
@@ -332,13 +333,13 @@ namespace ProjectTest.PersonUnitTests
 
         #region GetSortedPerson
         [Fact]
-        public void GetSortedPerson_ByPersonName_Desc()
+        public async Task  GetSortedPerson_ByPersonName_Desc()
         {
             //Arrange
 
             AddPersonDetails();
 
-            List<PersonResponseDto> PersonResponseList = _personsService.GetAllPerson();
+            List<PersonResponseDto> PersonResponseList =await _personsService.GetAllPerson();
             List<PersonResponseDto> expectedPersonResponseList= 
                 PersonResponseList.OrderByDescending(person => person.PersonName).ToList();
 
@@ -361,13 +362,13 @@ namespace ProjectTest.PersonUnitTests
         }
 
         [Fact]
-        public void GetSortedPerson_ByPersonName_Asc()
+        public async Task  GetSortedPerson_ByPersonName_Asc()
         {
             //Arrange
 
             AddPersonDetails();
 
-            List<PersonResponseDto> PersonResponseList = _personsService.GetAllPerson();
+            List<PersonResponseDto> PersonResponseList =await _personsService.GetAllPerson();
             List<PersonResponseDto> expectedPersonResponseList =
                 PersonResponseList.OrderBy(person => person.PersonName).ToList();
 
@@ -392,39 +393,39 @@ namespace ProjectTest.PersonUnitTests
 
         #region UpdatePerson
         [Fact]
-        public void UpdatePerson_NullPerson()
+        public async Task  UpdatePerson_NullPerson()
         {
             // Arrange
             PersonUpdateRequestDto personUpdateRequestDto = null;
 
             
             // Assert
-            Assert.Throws<ArgumentNullException>(() => {
+            await Assert.ThrowsAsync<ArgumentNullException>(async() => {
                 // Act
-                _personsService.UpdatePerson(personUpdateRequestDto);
+               await _personsService.UpdatePerson(personUpdateRequestDto);
             });
 
         }
         [Fact]
-        public void UpdatePerson_InvalidPersonId()
+        public async Task  UpdatePerson_InvalidPersonId()
         {
             // Arrange
             PersonUpdateRequestDto personUpdateRequestDto = new PersonUpdateRequestDto() {PersonId=Guid.NewGuid() };
 
 
             // Assert
-            Assert.Throws<ArgumentException>(() => {
+            await Assert.ThrowsAsync<ArgumentException>(async () => {
                 // Act
-                _personsService.UpdatePerson(personUpdateRequestDto);
+               await _personsService.UpdatePerson(personUpdateRequestDto);
             });
 
         }
         [Fact]
-        public void UpdatePerson_PersonNameNull()
+        public async Task  UpdatePerson_PersonNameNull()
         {
             // Arrange
-            CountryResponseDto countryResponseDto = _countriesService.AddCountry(_countryAddRequestDto);
-            PersonResponseDto? personResponseToUpdate = _personsService.AddPerson(_personAddRequestDto);
+            CountryResponseDto countryResponseDto = await _countriesService.AddCountry(_countryAddRequestDto);
+            PersonResponseDto? personResponseToUpdate =await _personsService.AddPerson(_personAddRequestDto);
             PersonUpdateRequestDto personUpdateRequestDto = new PersonUpdateRequestDto()
             {
                 PersonId = personResponseToUpdate.PersonId,
@@ -433,24 +434,24 @@ namespace ProjectTest.PersonUnitTests
 
 
             // Assert
-            Assert.Throws<ArgumentException>(() => {
+            await Assert.ThrowsAsync<ArgumentException>(async() => {
                 // Act
-                _personsService.UpdatePerson(personUpdateRequestDto);
+                await _personsService.UpdatePerson(personUpdateRequestDto);
             });
 
         }
         [Fact]
-        public void UpdatePerson_WithProperDetails()
+        public async Task  UpdatePerson_WithProperDetails()
         {
             // Arrange
-            CountryResponseDto countryResponseDto = _countriesService.AddCountry(_countryAddRequestDto);
-            PersonResponseDto? personResponseToUpdate = _personsService.AddPerson(_personAddRequestDto);
+            CountryResponseDto countryResponseDto = await _countriesService.AddCountry(_countryAddRequestDto);
+            PersonResponseDto? personResponseToUpdate =await _personsService.AddPerson(_personAddRequestDto);
             _personUpdateRequestDto.PersonId = personResponseToUpdate.PersonId;
 
 
             // Act
-            PersonResponseDto? actualPersonResponse = _personsService.UpdatePerson(_personUpdateRequestDto);
-            PersonResponseDto? expectedPersonResponse = _personsService.GetPersonById(actualPersonResponse?.PersonId);
+            PersonResponseDto? actualPersonResponse = await _personsService.UpdatePerson(_personUpdateRequestDto);
+            PersonResponseDto? expectedPersonResponse =await _personsService.GetPersonById(actualPersonResponse?.PersonId);
 
             // Assert
             Assert.Equal(expectedPersonResponse, actualPersonResponse);
@@ -460,25 +461,25 @@ namespace ProjectTest.PersonUnitTests
 
 
         [Fact]
-        public void DeletePerson_WithoutProperDetails()
+        public async Task  DeletePerson_WithoutProperDetails()
         {
             //Arrange
              Guid personId= Guid.NewGuid();
             //Act
-            bool isdeleted = _personsService.DeletePerson(personId);
+            bool isdeleted = await _personsService.DeletePerson(personId);
 
             //Assert
             Assert.False(isdeleted);
         }
 
         [Fact]
-        public void DeletePerson_WithProperDetails()
+        public async Task  DeletePerson_WithProperDetails()
         {
             //Arrange
-            PersonResponseDto person = _personsService.AddPerson(_personAddRequestDto);
+            PersonResponseDto person =await _personsService.AddPerson(_personAddRequestDto);
 
             //Act
-            bool isdeleted = _personsService.DeletePerson(person.PersonId);
+            bool isdeleted =await _personsService.DeletePerson(person.PersonId);
 
             //Assert
             Assert.True(isdeleted); 

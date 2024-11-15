@@ -13,7 +13,7 @@ namespace ServiceContracts.DTOs.PersonsDtos
         public string? PersonName { get; set; }
         public string? Email { get; set; }
         public DateTime? Dob { get; set; }
-        public Gender? Gender { get; set; }
+        public string? Gender { get; set; }
         public Guid? CountryId { get; set; }
         public string? Country { get; set; }
         public string? Address { get; set; }

@@ -10,14 +10,14 @@ namespace ServiceContracts.Interfaces.Person
 {
     public interface IPersonsService
     {
-        PersonResponseDto? AddPerson(PersonAddRequestDto? personAddRequestDto);
-        List<PersonResponseDto>? GetAllPerson();
-        PersonResponseDto? GetPersonById(Guid? personId);
-        List<PersonResponseDto>? GetPersonByFilter(string searchBy,string? searchString);
+        Task<PersonResponseDto?> AddPerson(PersonAddRequestDto? personAddRequestDto);
+        Task<List<PersonResponseDto>?> GetAllPerson();
+        Task<PersonResponseDto?> GetPersonById(Guid? personId);
+        Task<List<PersonResponseDto>?> GetPersonByFilter(string searchBy,string? searchString);
         List<PersonResponseDto>? GetSortedPersons(List<PersonResponseDto> persons,string sortby,SortOderOption order);
-        PersonResponseDto? UpdatePerson(PersonUpdateRequestDto? personUpdateRequestDto);
+        Task<PersonResponseDto?> UpdatePerson(PersonUpdateRequestDto? personUpdateRequestDto);
 
-        bool DeletePerson(Guid? personId);
+        Task<bool> DeletePerson(Guid? personId);
 
 
     }

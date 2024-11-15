@@ -22,7 +22,7 @@ namespace ProjectTest.CountryUnitTests
         public CountriesServiceTest()
         {
             _mockMapper = new Mock<IMapper>();
-            _countriesService = new CountriesService(_mockMapper.Object);
+            _countriesService = new CountriesService(_mockMapper.Object,null);
         }
 
         #region AddCountry
@@ -30,15 +30,15 @@ namespace ProjectTest.CountryUnitTests
         /// - when CountryAddRequestDto is null then it should throw ArgumentNullException.
         /// </summary>
         [Fact]
-        public void AddCountry_NUllCountry()
+        public async Task AddCountry_NUllCountry()
         {
             // Arrange
             CountryAddRequestDto? countryAddRequestDto = null;
 
             // Assert
-            Assert.Throws<ArgumentNullException>(
+            await Assert.ThrowsAsync<ArgumentNullException>(
                     // Act
-                    () => _countriesService.AddCountry(countryAddRequestDto)
+                   async () => await _countriesService.AddCountry(countryAddRequestDto)
             );
         }
 
@@ -46,16 +46,16 @@ namespace ProjectTest.CountryUnitTests
         /// - when CountryName is null then it should throw ArgumentException.
         /// </summary>
         [Fact]
-        public void AddCountry_CountryNameIsNUll()
+        public async Task AddCountry_CountryNameIsNUll()
         {
             // Arrange
             CountryAddRequestDto? countryAddRequestDto = new CountryAddRequestDto();
             countryAddRequestDto.CountryName = null;
 
             // Assert
-            Assert.Throws<ArgumentException>(
+           await Assert.ThrowsAsync<ArgumentException>(
                     // Act
-                    () => _countriesService.AddCountry(countryAddRequestDto)
+                   async () => await _countriesService.AddCountry(countryAddRequestDto)
             );
         }
 
@@ -63,7 +63,7 @@ namespace ProjectTest.CountryUnitTests
         /// -  when CountryName is duplicated then it should throw ArgumentException.
         /// </summary>
         [Fact]
-        public void AddCountry_DuplicateCountryName()
+        public async Task  AddCountry_DuplicateCountryName()
         {
             // Arrange
             var guid = Guid.NewGuid();
@@ -80,12 +80,12 @@ namespace ProjectTest.CountryUnitTests
                 .Returns((Country c) => new CountryResponseDto { CountryId = c.CountryId, CountryName = c.CountryName });
 
             // Assert
-            Assert.Throws<ArgumentException>(
+            await Assert.ThrowsAsync<ArgumentException>(
                     // Act
-                    () =>
+                   async () =>
                     {
-                        _countriesService.AddCountry(countryAddRequestDto1);
-                        _countriesService.AddCountry(countryAddRequestDto2);
+                      await  _countriesService.AddCountry(countryAddRequestDto1);
+                      await  _countriesService.AddCountry(countryAddRequestDto2);
                     }
             );
         }
@@ -94,7 +94,7 @@ namespace ProjectTest.CountryUnitTests
         /// - when correct CountryName provided, it should be inserted in to list of countries or Country table.
         /// </summary>
         [Fact]
-        public void AddCountry_SucessfulCountryInsertion()
+        public async Task  AddCountry_SucessfulCountryInsertion()
         {
 
             // Arrange
@@ -114,8 +114,8 @@ namespace ProjectTest.CountryUnitTests
             //_mapperMock.Setup(m => m.Map<DestinationType>(It.IsAny<SourceType>()))
 
             // Act
-            CountryResponseDto actualCountry = _countriesService.AddCountry(expectedCountry);
-            List<CountryResponseDto> actualResponseList = _countriesService.GetAllCountries();
+            CountryResponseDto actualCountry = await _countriesService.AddCountry(expectedCountry);
+            List<CountryResponseDto> actualResponseList = await _countriesService.GetAllCountries();
 
             // Assert
             Assert.True(actualCountry.CountryId != Guid.Empty);
@@ -130,7 +130,7 @@ namespace ProjectTest.CountryUnitTests
         /// Before inserting any country list must be empty.
         /// </summary>
         [Fact]
-        public void GetAllCountries_EmptyList()
+        public async Task  GetAllCountries_EmptyList()
         {
             //Arrange
             _mockMapper.Setup(m => m.Map<List<CountryResponseDto>>(It.IsAny<List<Country>>()))
@@ -138,7 +138,7 @@ namespace ProjectTest.CountryUnitTests
                    countries.Select((country) => new CountryResponseDto { CountryId = country.CountryId, CountryName = country.CountryName }).ToList()
                 );
             //Act
-            List<CountryResponseDto> actualCountryResponse = _countriesService.GetAllCountries();
+            List<CountryResponseDto> actualCountryResponse = await _countriesService.GetAllCountries();
 
             //Assert
             Assert.Empty(actualCountryResponse);
@@ -148,7 +148,7 @@ namespace ProjectTest.CountryUnitTests
         /// Countries added and returns must be same.
         /// </summary>
         [Fact]
-        public void GetAllCountries_AddAndReturnSameCountries()
+        public async Task  GetAllCountries_AddAndReturnSameCountries()
         {
             //Arrange
             List<CountryAddRequestDto> countryAddRequest = new List<CountryAddRequestDto>() {
@@ -181,10 +181,10 @@ namespace ProjectTest.CountryUnitTests
             foreach (var item in countryAddRequest)
             {
 
-                expectedCountryResponse.Add(_countriesService.AddCountry(item));
+                expectedCountryResponse.Add(await _countriesService.AddCountry(item));
             }
 
-            List<CountryResponseDto> actualcountryResponse = _countriesService.GetAllCountries();
+            List<CountryResponseDto> actualcountryResponse =await _countriesService.GetAllCountries();
 
             //Assert
             foreach (var expected_country in expectedCountryResponse)
@@ -206,20 +206,20 @@ namespace ProjectTest.CountryUnitTests
         /// If supplied CountryId is null,method should return null.
         /// </summary>
         [Fact]
-        public void GetCountryById_NullCountryId()
+        public async Task  GetCountryById_NullCountryId()
         {
             //Arrange
             Guid? countryId = null;
 
             //Act
-            CountryResponseDto? countryResponse = _countriesService.GetCountryById(countryId);
+            CountryResponseDto? countryResponse = await _countriesService.GetCountryById(countryId);
 
             //Assert
             Assert.Null(countryResponse);
         }
 
         [Fact]
-        public void GetCountryById_ValidCountryId()
+        public async Task  GetCountryById_ValidCountryId()
         {
             //Arrange
             CountryAddRequestDto countryAddRequest = new CountryAddRequestDto()
@@ -230,10 +230,10 @@ namespace ProjectTest.CountryUnitTests
                 .Returns((CountryAddRequestDto c) => new Country { CountryName = c.CountryName });
             _mockMapper.Setup(m => m.Map<CountryResponseDto>(It.IsAny<Country>()))
                 .Returns((Country c) => new CountryResponseDto { CountryId = c.CountryId, CountryName = c.CountryName });
-            CountryResponseDto expectedcountryResponse = _countriesService.AddCountry(countryAddRequest);
+            CountryResponseDto expectedcountryResponse = await _countriesService.AddCountry(countryAddRequest);
 
             //Act
-            CountryResponseDto? actualCountryResponse = _countriesService.GetCountryById(expectedcountryResponse.CountryId);
+            CountryResponseDto? actualCountryResponse = await _countriesService.GetCountryById(expectedcountryResponse.CountryId);
 
             //Assert
             Assert.Equal(expectedcountryResponse, actualCountryResponse);

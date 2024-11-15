@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace Entities.CountryEntity
 {
@@ -18,6 +19,7 @@ namespace Entities.CountryEntity
     /// </summary>
     public class Country
     {
+        [Key]
         public Guid CountryId { get; set; }
         public string? CountryName { get; set; }
 

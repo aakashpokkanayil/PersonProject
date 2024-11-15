@@ -16,18 +16,17 @@ namespace Services.Mapper
         public MappingProfile()
         {
             #region Country
-            CreateMap<CountryAddRequestDto, Country>().ReverseMap();
-            CreateMap<Country, CountryResponseDto>().ReverseMap();
-            CreateMap<List<Country>, List<CountryResponseDto>>().ReverseMap();
+            CreateMap<CountryAddRequestDto, Country>();
+            CreateMap<Country, CountryResponseDto>();
+           
             #endregion
 
             #region Person
-            CreateMap<PersonAddRequestDto,Person>()
-                .ReverseMap();
+            CreateMap<PersonAddRequestDto, Person>();
             CreateMap<Person, PersonResponseDto>()
-                .ForMember(dest=>dest.Age,opt=>opt.MapFrom(src=>(DateTime.Now.Year- Convert.ToDateTime(src.Dob).Year)))
-                .ReverseMap();
-            CreateMap<List<Person>, List<PersonResponseDto>>().ReverseMap();
+                .ForMember(dest => dest.Age, opt => opt.MapFrom(src => (DateTime.Now.Year - Convert.ToDateTime(src.Dob).Year)))
+                .ForMember(dest => dest.CountryId, opt => opt.MapFrom(src => src.Country == null ? null : src.Country.CountryName));
+
 
             CreateMap<PersonUpdateRequestDto, Person>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
