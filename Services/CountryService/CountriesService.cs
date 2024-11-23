@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Entities.CountryEntity;
-using Microsoft.EntityFrameworkCore;
-using PersonData.PersonsContext;
+using RepositoryContracts.Interfaces;
 using ServiceContracts.DTOs.CountryDtos;
 using ServiceContracts.Interfaces.Country;
 
@@ -10,13 +9,12 @@ namespace Services.CountryService
     public class CountriesService : ICountriesService
     {
         private readonly IMapper _mapper;
-        private readonly PersonsDbContext _dbContext;
+        private readonly ICountryRepository _countryRepository;
 
-
-        public CountriesService(IMapper mapper,PersonsDbContext dbContext)
+        public CountriesService(IMapper mapper,ICountryRepository countryRepository)
         {
             _mapper = mapper;
-            _dbContext = dbContext;
+            _countryRepository = countryRepository;
         }
 
         #region AddCountry
@@ -38,7 +36,7 @@ namespace Services.CountryService
                 throw new ArgumentException(nameof(countryAddRequestDto.CountryName));
             }
             //Validation: Duplicate CountryName cant exists.
-            if (await _dbContext.Countries.Where(x => x.CountryName == countryAddRequestDto.CountryName).CountAsync() > 0)
+            if (await _countryRepository.GetCountryByCountryName(countryAddRequestDto.CountryName)!=null)
             {
                 throw new ArgumentException("Given country name already exists.");
             }
@@ -47,8 +45,7 @@ namespace Services.CountryService
             Country country = _mapper.Map<Country>(countryAddRequestDto);
             // generate Guid for CountryId
             country.CountryId = Guid.NewGuid();
-            _dbContext.Countries.Add(country);
-            await _dbContext.SaveChangesAsync();
+             await _countryRepository.AddCountry(country);
             // mapping Domain model Country to CountryAddResponseDto
             CountryResponseDto countryAddResponseDto = _mapper.Map<CountryResponseDto>(country);
             return countryAddResponseDto;
@@ -60,16 +57,16 @@ namespace Services.CountryService
         #region GetCountries
         public async Task<List<CountryResponseDto>> GetAllCountries()
         {
-            List<CountryResponseDto> countryResponseList = _mapper.Map<List<CountryResponseDto>>( await _dbContext.Countries.ToListAsync());
+            List<CountryResponseDto> countryResponseList = 
+                _mapper.Map<List<CountryResponseDto>>( await _countryRepository.GetAllCountries());
             return countryResponseList;
         }
 
         public async Task<CountryResponseDto?> GetCountryById(Guid? CountryId)
         {
             if (CountryId == null) return null;
-            Country? country = await _dbContext.Countries.FirstOrDefaultAsync(x => x.CountryId == CountryId);
+            Country? country = await _countryRepository.GetCountryById(CountryId);
             if (country == null) return null;
-
             return _mapper.Map<CountryResponseDto>(country);
         }
 

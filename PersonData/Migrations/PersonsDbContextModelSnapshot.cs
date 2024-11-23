@@ -10,7 +10,7 @@ using PersonData.PersonsContext;
 
 namespace PersonData.Migrations
 {
-    [DbContext(typeof(PersonsDbContext))]
+    [DbContext(typeof(ApplicationDbContext))]
     partial class PersonsDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

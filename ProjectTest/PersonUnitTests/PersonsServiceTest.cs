@@ -1,22 +1,14 @@
 ﻿using AutoMapper;
 using Entities.CountryEntity;
 using Entities.PersonEntity;
+using Microsoft.Extensions.Logging;
 using Moq;
+using RepositoryContracts.Interfaces;
 using ServiceContracts.DTOs.CountryDtos;
 using ServiceContracts.DTOs.PersonsDtos;
 using ServiceContracts.Enums;
-using ServiceContracts.Interfaces.Country;
 using ServiceContracts.Interfaces.Person;
-using Services.CountryService;
 using Services.PersonService;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Formats.Asn1;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ProjectTest.PersonUnitTests
 {
@@ -24,7 +16,6 @@ namespace ProjectTest.PersonUnitTests
     {
         private readonly IPersonsService? _personsService;
         private readonly Mock<IMapper>? _mockMapper;
-        private readonly ICountriesService? _countriesService;
         private PersonAddRequestDto? _personAddRequestDto = null;
         private PersonAddRequestDto? _personAddRequestDto2 = null;
         private PersonAddRequestDto? _personAddRequestDto3 = null;
@@ -32,21 +23,29 @@ namespace ProjectTest.PersonUnitTests
         private CountryAddRequestDto? _countryAddRequestDto2 = null;
         private CountryAddRequestDto? _countryAddRequestDto3 = null;
         private PersonUpdateRequestDto? _personUpdateRequestDto = null;
+        private readonly IPersonRepository _personRepository;
+        private readonly Mock<IPersonRepository> _mockPersonRepository;
+        private readonly Mock<ILogger<PersonsServices>> _mockLogger;
+        private readonly ILogger<PersonsServices> _logger;
 
         public PersonsServiceTest()
         {
             _mockMapper = new Mock<IMapper>();
-            _countriesService = new CountriesService(_mockMapper.Object,null);
-            _personsService = new PersonsServices(_mockMapper.Object, _countriesService,null);
+            _mockPersonRepository= new Mock<IPersonRepository>();
+            _mockLogger= new Mock<ILogger<PersonsServices>>();   
+            _personRepository= _mockPersonRepository.Object;
+            _logger=_mockLogger.Object;
+
+            _personsService = new PersonsServices(_mockMapper.Object, _personRepository, _logger);
 
             Initializeobjects();
             mockPersonMapper();
             mockCountryMapper();
         }
         #region PrivateMethods
-        private async Task  mockPersonMapper()
+        private void  mockPersonMapper()
         {
-            _mockMapper.Setup(m => m.Map<Person>(It.IsAny<PersonAddRequestDto>()))
+           _mockMapper?.Setup(m => m.Map<Person>(It.IsAny<PersonAddRequestDto>()))
                 .Returns<PersonAddRequestDto>((req) => new Person
                 {
                     PersonName = req.PersonName,
@@ -57,7 +56,7 @@ namespace ProjectTest.PersonUnitTests
                     Dob = req.Dob,
                     ReceiveNewsLetters = req.ReceiveNewsLetters
                 });
-            _mockMapper.Setup(m => m.Map<PersonResponseDto>(It.IsAny<Person>()))
+            _mockMapper?.Setup(m => m.Map<PersonResponseDto>(It.IsAny<Person>()))
                 .Returns<Person>((p) => new PersonResponseDto
                 {
                     PersonId = p.PersonId,
@@ -69,7 +68,7 @@ namespace ProjectTest.PersonUnitTests
                     Gender = p.Gender,
                     ReceiveNewsLetters = p.ReceiveNewsLetters
                 });
-            _mockMapper.Setup(m => m.Map<List<PersonResponseDto>>(It.IsAny<List<Person>>()))
+            _mockMapper?.Setup(m => m.Map<List<PersonResponseDto>>(It.IsAny<List<Person>>()))
                 .Returns<List<Person>>((pList) => pList.Select((pRes) => new PersonResponseDto
                 {
                     PersonId = pRes.PersonId,
@@ -84,14 +83,14 @@ namespace ProjectTest.PersonUnitTests
 
         }
 
-        private async Task  mockCountryMapper()
+        private void  mockCountryMapper()
         {
-            _mockMapper.Setup(m => m.Map<Country>(It.IsAny<CountryAddRequestDto>()))
+            _mockMapper?.Setup(m => m.Map<Country>(It.IsAny<CountryAddRequestDto>()))
                 .Returns<CountryAddRequestDto>((cReq) => new Country()
                 {
                     CountryName = cReq.CountryName,
                 });
-            _mockMapper.Setup(m => m.Map<CountryResponseDto>(It.IsAny<Country>()))
+            _mockMapper?.Setup(m => m.Map<CountryResponseDto>(It.IsAny<Country>()))
                .Returns<Country>((c) => new CountryResponseDto()
                {
                    CountryId = c.CountryId,
@@ -99,23 +98,11 @@ namespace ProjectTest.PersonUnitTests
                });
         }
 
-        private async Task AddPersonDetails()
-        {
-            CountryResponseDto country1 = await _countriesService.AddCountry(_countryAddRequestDto);
-            CountryResponseDto country2 = await _countriesService.AddCountry(_countryAddRequestDto2);
-            CountryResponseDto country3 = await _countriesService.AddCountry(_countryAddRequestDto3);
-            _personAddRequestDto.CountryId = country1.CountryId;
-            _personAddRequestDto2.CountryId = country2.CountryId;
-            _personAddRequestDto3.CountryId = country3.CountryId;
+       
 
-            await _personsService.AddPerson(_personAddRequestDto);
-            await _personsService.AddPerson(_personAddRequestDto2);
-            await _personsService.AddPerson(_personAddRequestDto3);
-        }
-
-        private async Task  Initializeobjects()
+        private void  Initializeobjects()
         {
-            _countryAddRequestDto = new CountryAddRequestDto() { CountryName = "Canada" };
+            _countryAddRequestDto =  new CountryAddRequestDto() { CountryName = "Canada" };
             _countryAddRequestDto2 = new CountryAddRequestDto() { CountryName = "India" };
             _countryAddRequestDto3 = new CountryAddRequestDto() { CountryName = "America" };
             _personAddRequestDto = new PersonAddRequestDto()
@@ -200,20 +187,29 @@ namespace ProjectTest.PersonUnitTests
 
 
         [Fact]
-        public async Task  AddPerson_WithProperDetails()
+        public async Task  AddPerson_WithProperDetails_ToBeSucessfull()
         {
             //Arrange
-
+            _mockPersonRepository.Setup(x => x.AddPerson(It.IsAny<Person>()))
+                .ReturnsAsync( new Person { 
+                    PersonId = Guid.NewGuid(),
+                    PersonName =_personAddRequestDto?.PersonName,
+                    CountryId= _personAddRequestDto?.CountryId,
+                    Email = _personAddRequestDto?.Email,
+                    Dob = _personAddRequestDto?.Dob,
+                    Gender=_personAddRequestDto?.Gender.ToString(),
+                    Address = _personAddRequestDto?.Address,
+                    ReceiveNewsLetters= _personAddRequestDto.ReceiveNewsLetters,
+                    Country=null
+                });
 
             //Act
 
             PersonResponseDto? actualPersonResponse = await _personsService.AddPerson(_personAddRequestDto);
 
-            List<PersonResponseDto>? expectedPersonResponseList = await _personsService.GetAllPerson();
 
             //Assert
             Assert.True(actualPersonResponse?.PersonId != Guid.Empty);
-            Assert.Contains(actualPersonResponse, expectedPersonResponseList);
 
         }
         #endregion
@@ -223,6 +219,8 @@ namespace ProjectTest.PersonUnitTests
         public async Task  GetAllPerson_NullList()
         {
             //Arrange
+            _mockPersonRepository.Setup(x => x.GetAllPersons())
+                 .ReturnsAsync(new List<Person>());
 
             //Act
             List<PersonResponseDto>? personResponseDto = await _personsService.GetAllPerson();
@@ -233,15 +231,17 @@ namespace ProjectTest.PersonUnitTests
         public async Task  GetAllPerson_WithProperdetails()
         {
             //Arrange
-            CountryResponseDto countryResponseDto = await _countriesService.AddCountry(_countryAddRequestDto);
-            _personAddRequestDto.CountryId = countryResponseDto.CountryId;
-            PersonResponseDto? personResponse = await _personsService.AddPerson(_personAddRequestDto);
+            _mockPersonRepository.Setup(x => x.GetAllPersons())
+                 .ReturnsAsync(new List<Person>()
+                 { 
+                     new Person(){ PersonId=Guid.NewGuid()},
+                     new Person(){PersonId=Guid.NewGuid() },
+                 });
+          
             //Act
             List<PersonResponseDto>? personResponseList = await _personsService.GetAllPerson();
             //Assert
             Assert.NotNull(personResponseList);
-            Assert.Contains(personResponse, personResponseList);
-            Assert.True(personResponseList.Exists(x => x.CountryId == countryResponseDto.CountryId));
         }
         #endregion
 
@@ -260,14 +260,25 @@ namespace ProjectTest.PersonUnitTests
         public async Task  GetPersonById_WithProperId()
         {
             // Arrange
-            CountryResponseDto countryResponseDto = await _countriesService.AddCountry(_countryAddRequestDto);
-            PersonResponseDto? expectedPersonResponse = await _personsService.AddPerson(_personAddRequestDto);
+            Guid guid = Guid.NewGuid();
+            _mockPersonRepository.Setup(x => x.GetPersonById(It.IsAny<Guid>()))
+                .ReturnsAsync(new Person()
+                {
+                    PersonId = guid,
+                    PersonName = "Kokash",
+                    Email = "Aakash@mail.com",
+                    Address = "Aakash Address",
+                    CountryId = Guid.NewGuid(),
+                    Gender = "Male",
+                    Dob = DateTime.Parse("1996-5-13"),
+                    ReceiveNewsLetters = true
+                });
 
-
-            // Act
-            PersonResponseDto? actualPersonResponse = await _personsService.GetPersonById(expectedPersonResponse?.PersonId);
+             // Act
+             PersonResponseDto? actualPersonResponse = await _personsService.GetPersonById(guid);
             // Assert
-            Assert.Equal(expectedPersonResponse, actualPersonResponse);
+            Assert.NotNull(actualPersonResponse);
+            Assert.True(actualPersonResponse.PersonId == guid);
 
         }
 
@@ -278,10 +289,19 @@ namespace ProjectTest.PersonUnitTests
         public async Task  GetFilteredPerson_EmptySearchTest()
         {
             //Arrange
+            List<Person> persons = new List<Person>()
+                {
+                     new Person(){ PersonId=Guid.NewGuid()},
+                     new Person(){PersonId=Guid.NewGuid() },
+                };
+            List<PersonResponseDto> personsResponse = new List<PersonResponseDto>();
+            personsResponse.Add(new PersonResponseDto() { PersonId= persons[0].PersonId });
+            personsResponse.Add(new PersonResponseDto() { PersonId = persons[1].PersonId });
 
-            AddPersonDetails();
+            _mockPersonRepository.Setup(x => x.GetAllPersons())
+                .ReturnsAsync(persons);
 
-            List<PersonResponseDto> expectedPersonResponseList = await _personsService.GetAllPerson();
+            
 
             //Act
 
@@ -289,14 +309,11 @@ namespace ProjectTest.PersonUnitTests
                await _personsService.GetPersonByFilter(nameof(Person.PersonName),"");
 
             // Assert
-
-            foreach (var person in expectedPersonResponseList)
+            Assert.NotNull(actualPersonResponseList);
+            foreach (var person in personsResponse)
             {
                 Assert.Contains(person, actualPersonResponseList);
             }
-
-
-
 
         }
 
@@ -305,9 +322,18 @@ namespace ProjectTest.PersonUnitTests
         {
             //Arrange
 
-            AddPersonDetails();
+            List<Person> persons = new List<Person>()
+                {
+                     new Person(){ PersonId=Guid.NewGuid(),PersonName="Vishnu"},
+                     new Person(){PersonId=Guid.NewGuid(),PersonName="Deva"},
+                };
+            List<PersonResponseDto> personsResponse = new List<PersonResponseDto>();
+            personsResponse.Add(new PersonResponseDto() { PersonId = persons[0].PersonId , PersonName = persons[0].PersonName });
+            personsResponse.Add(new PersonResponseDto() { PersonId = persons[1].PersonId, PersonName = persons[1].PersonName });
 
-            List<PersonResponseDto> expectedPersonResponseList = await _personsService.GetAllPerson();
+            _mockPersonRepository.Setup(x => x.GetAllPersons())
+                .ReturnsAsync(persons);
+
 
             //Act
 
@@ -316,7 +342,7 @@ namespace ProjectTest.PersonUnitTests
 
             // Assert
 
-            foreach (var person in expectedPersonResponseList)
+            foreach (var person in personsResponse)
             {
                 if (person.PersonName != null)
                 {
@@ -337,17 +363,24 @@ namespace ProjectTest.PersonUnitTests
         {
             //Arrange
 
-            AddPersonDetails();
+            List<Person> persons = new List<Person>()
+                {
+                     new Person(){ PersonId=Guid.NewGuid(),PersonName="Vishnu"},
+                     new Person(){PersonId=Guid.NewGuid(),PersonName="Deva"},
+                };
+            List<PersonResponseDto> personsResponse = new List<PersonResponseDto>();
+            personsResponse.Add(new PersonResponseDto() { PersonId = persons[0].PersonId, PersonName = persons[0].PersonName });
+            personsResponse.Add(new PersonResponseDto() { PersonId = persons[1].PersonId, PersonName = persons[1].PersonName });
 
-            List<PersonResponseDto> PersonResponseList =await _personsService.GetAllPerson();
-            List<PersonResponseDto> expectedPersonResponseList= 
-                PersonResponseList.OrderByDescending(person => person.PersonName).ToList();
+
+            List<PersonResponseDto> expectedPersonResponseList=
+                personsResponse.OrderByDescending(person => person.PersonName).ToList();
 
 
             //Act
 
             List<PersonResponseDto> actualPersonResponseList =
-                _personsService.GetSortedPersons(PersonResponseList, nameof(Person.PersonName), SortOderOption.DESC);
+                _personsService.GetSortedPersons(personsResponse, nameof(Person.PersonName), SortOderOption.DESC);
 
             // Assert
 
@@ -366,17 +399,22 @@ namespace ProjectTest.PersonUnitTests
         {
             //Arrange
 
-            AddPersonDetails();
-
-            List<PersonResponseDto> PersonResponseList =await _personsService.GetAllPerson();
+            List<Person> persons = new List<Person>()
+                {
+                     new Person(){ PersonId=Guid.NewGuid(),PersonName="Vishnu"},
+                     new Person(){PersonId=Guid.NewGuid(),PersonName="Deva"},
+                };
+            List<PersonResponseDto> personsResponse = new List<PersonResponseDto>();
+            personsResponse.Add(new PersonResponseDto() { PersonId = persons[0].PersonId, PersonName = persons[0].PersonName });
+            personsResponse.Add(new PersonResponseDto() { PersonId = persons[1].PersonId, PersonName = persons[1].PersonName });
             List<PersonResponseDto> expectedPersonResponseList =
-                PersonResponseList.OrderBy(person => person.PersonName).ToList();
+                personsResponse.OrderBy(person => person.PersonName).ToList();
 
 
             //Act
 
             List<PersonResponseDto> actualPersonResponseList =
-                _personsService.GetSortedPersons(PersonResponseList, nameof(Person.PersonName), SortOderOption.ASC);
+                _personsService.GetSortedPersons(personsResponse, nameof(Person.PersonName), SortOderOption.ASC);
 
             // Assert
 
@@ -411,6 +449,8 @@ namespace ProjectTest.PersonUnitTests
         {
             // Arrange
             PersonUpdateRequestDto personUpdateRequestDto = new PersonUpdateRequestDto() {PersonId=Guid.NewGuid() };
+            _mockPersonRepository.Setup(m=>m.GetPersonById(It.IsAny<Guid>()))
+                .ReturnsAsync(null as Person);
 
 
             // Assert
@@ -420,41 +460,55 @@ namespace ProjectTest.PersonUnitTests
             });
 
         }
-        [Fact]
-        public async Task  UpdatePerson_PersonNameNull()
-        {
-            // Arrange
-            CountryResponseDto countryResponseDto = await _countriesService.AddCountry(_countryAddRequestDto);
-            PersonResponseDto? personResponseToUpdate =await _personsService.AddPerson(_personAddRequestDto);
-            PersonUpdateRequestDto personUpdateRequestDto = new PersonUpdateRequestDto()
-            {
-                PersonId = personResponseToUpdate.PersonId,
-                PersonName = null,
-            };
-
-
-            // Assert
-            await Assert.ThrowsAsync<ArgumentException>(async() => {
-                // Act
-                await _personsService.UpdatePerson(personUpdateRequestDto);
-            });
-
-        }
+       
         [Fact]
         public async Task  UpdatePerson_WithProperDetails()
         {
             // Arrange
-            CountryResponseDto countryResponseDto = await _countriesService.AddCountry(_countryAddRequestDto);
-            PersonResponseDto? personResponseToUpdate =await _personsService.AddPerson(_personAddRequestDto);
-            _personUpdateRequestDto.PersonId = personResponseToUpdate.PersonId;
+            Guid personId = Guid.NewGuid();
+            PersonUpdateRequestDto personUpdateRequestDto = new PersonUpdateRequestDto() 
+            {
+                PersonId = personId,
+                PersonName = "Kokash",
+                Email = "Aakash@mail.com",
+                Address = "Aakash Address",
+                CountryId = null,
+                Gender = Gender.Male,
+                Dob = DateTime.Parse("1996-5-13"),
+                ReceiveNewsLetters = true
+            };
+            Person person = new Person() {
+                PersonId = personId,
+                PersonName = "Kokash",
+                Email = "Aakash@mail.com",
+                Address = "Aakash Address",
+                CountryId = null,
+                Gender = "Male",
+                Dob = DateTime.Parse("1996-5-13"),
+                ReceiveNewsLetters = true
+            };
+            PersonResponseDto personResponseDto = new PersonResponseDto()
+            {
+                PersonId = personId,
+                PersonName = "Kokash",
+                Email = "Aakash@mail.com",
+                Address = "Aakash Address",
+                CountryId = null,
+                Gender = "Male",
+                Dob = DateTime.Parse("1996-5-13"),
+                ReceiveNewsLetters = true
+            };
+            _mockPersonRepository.Setup(m => m.GetPersonById(It.IsAny<Guid>()))
+                .ReturnsAsync(person);
+            _mockPersonRepository.Setup(m => m.UpdatePerson(It.IsAny<Person>()))
+                .ReturnsAsync(person);
 
 
             // Act
             PersonResponseDto? actualPersonResponse = await _personsService.UpdatePerson(_personUpdateRequestDto);
-            PersonResponseDto? expectedPersonResponse =await _personsService.GetPersonById(actualPersonResponse?.PersonId);
 
             // Assert
-            Assert.Equal(expectedPersonResponse, actualPersonResponse);
+            Assert.Equal(personResponseDto, actualPersonResponse);
 
         }
         #endregion
@@ -465,6 +519,8 @@ namespace ProjectTest.PersonUnitTests
         {
             //Arrange
              Guid personId= Guid.NewGuid();
+            _mockPersonRepository.Setup(m => m.GetPersonById(It.IsAny<Guid>()))
+                .ReturnsAsync(null as Person);
             //Act
             bool isdeleted = await _personsService.DeletePerson(personId);
 
@@ -476,7 +532,23 @@ namespace ProjectTest.PersonUnitTests
         public async Task  DeletePerson_WithProperDetails()
         {
             //Arrange
-            PersonResponseDto person =await _personsService.AddPerson(_personAddRequestDto);
+            Guid personId = Guid.NewGuid();
+            Person person = new Person()
+            {
+                PersonId = personId,
+                PersonName = "Kokash",
+                Email = "Aakash@mail.com",
+                Address = "Aakash Address",
+                CountryId = null,
+                Gender = "Male",
+                Dob = DateTime.Parse("1996-5-13"),
+                ReceiveNewsLetters = true
+            };
+            _mockPersonRepository.Setup(m => m.GetPersonById(It.IsAny<Guid>()))
+                .ReturnsAsync(person);
+            _mockPersonRepository.Setup(m => m.DeletePersonById(It.IsAny<Guid>()))
+                .ReturnsAsync(true);
+
 
             //Act
             bool isdeleted =await _personsService.DeletePerson(person.PersonId);

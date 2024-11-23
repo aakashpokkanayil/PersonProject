@@ -1,32 +1,25 @@
 ﻿using AutoMapper;
-using Entities.CountryEntity;
 using Entities.PersonEntity;
+using Exceptions;
+using Microsoft.Extensions.Logging;
+using RepositoryContracts.Interfaces;
 using ServiceContracts.DTOs.PersonsDtos;
-using Entities.Enum;
 using ServiceContracts.Enums;
-using ServiceContracts.Interfaces.Country;
 using ServiceContracts.Interfaces.Person;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using PersonData.PersonsContext;
-using Microsoft.EntityFrameworkCore;
 
 namespace Services.PersonService
 {
     public class PersonsServices:IPersonsService
     {
         private readonly IMapper _mapper;
-        private readonly ICountriesService _countriesService;
-        private readonly PersonsDbContext _dbContext;
-        public PersonsServices(IMapper mapper, ICountriesService countriesService, PersonsDbContext dbContext) {
-            _mapper = mapper;
-            _countriesService = countriesService;
-            _dbContext = dbContext;
+        private readonly IPersonRepository _personRepository;
+        private readonly ILogger<PersonsServices> _logger;
 
+        public PersonsServices(IMapper mapper,IPersonRepository personRepository,ILogger<PersonsServices> logger) {
+
+            _mapper = mapper;
+            _personRepository = personRepository;
+            _logger = logger;
         }
 
         public async Task<PersonResponseDto?> AddPerson(PersonAddRequestDto? personAddRequestDto)
@@ -36,8 +29,7 @@ namespace Services.PersonService
                 throw new ArgumentException("PersonName Can't be null");
             Person person= _mapper.Map<Person>(personAddRequestDto);
             person.PersonId=Guid.NewGuid();
-            _dbContext.Persons.Add(person);
-            await _dbContext.SaveChangesAsync();
+            await _personRepository.AddPerson(person);
             PersonResponseDto? personResponseDto= await GetPersonById(person.PersonId);
             return personResponseDto;
 
@@ -47,11 +39,14 @@ namespace Services.PersonService
 
         public async Task<List<PersonResponseDto>?> GetAllPerson()
         {
-            return _mapper.Map<List<PersonResponseDto>>( await _dbContext.Persons.Include("Country").ToListAsync());
+            _logger.LogInformation("reached GetAllPerson of PersonsServices");
+            return _mapper.Map<List<PersonResponseDto>>( await _personRepository.GetAllPersons());
         }
 
         public async Task<List<PersonResponseDto>?> GetPersonByFilter(string searchBy, string? searchString)
         {
+            _logger.LogInformation("reached GetPersonByFilter of PersonsServices");
+
             List<PersonResponseDto>? personResponseList = await GetAllPerson();
             List<PersonResponseDto>? matchingPersons = personResponseList;
             if (string.IsNullOrEmpty(searchBy) || string.IsNullOrEmpty(searchString))
@@ -59,6 +54,8 @@ namespace Services.PersonService
                 return matchingPersons;
             }
             if (personResponseList==null) return null;
+
+           
 
             matchingPersons=  personResponseList.Where(person => {
                 Type type = person.GetType();
@@ -83,14 +80,15 @@ namespace Services.PersonService
         public async Task<PersonResponseDto?> GetPersonById(Guid? personId)
         {
             if (personId == null) return null;
-            Person? person = await _dbContext.Persons.Include("Country").FirstOrDefaultAsync(x => x.PersonId == personId);
-            if (person == null) return null;
+            Person? person = await _personRepository.GetPersonById(personId.Value);
+            if (person == null) throw new InvalidPersonIdException("Given Person Id doesnot exists");
             PersonResponseDto? personResponseDto= _mapper.Map<PersonResponseDto>(person);
             return personResponseDto;
         }
 
         public List<PersonResponseDto>? GetSortedPersons(List<PersonResponseDto> persons, string sortby, SortOderOption order)
         {
+            _logger.LogInformation("reached GetSortedPersons of PersonsServices");
             List<PersonResponseDto>? sortedPersons = null;
             if (string.IsNullOrEmpty(sortby)) return null;
             sortedPersons = persons;
@@ -142,18 +140,10 @@ namespace Services.PersonService
             if (string.IsNullOrEmpty(personUpdateRequestDto.PersonName))
                 throw new ArgumentException("Name cant be null");
 
-            Person? matchingPerson= await _dbContext.Persons.FirstOrDefaultAsync(p => p.PersonId == personUpdateRequestDto.PersonId);
+            Person? matchingPerson= await _personRepository.GetPersonById(personUpdateRequestDto.PersonId);
             if (matchingPerson == null) throw new ArgumentException("Person dont exists");
 
-            matchingPerson.PersonName=personUpdateRequestDto.PersonName;
-            matchingPerson.Email=personUpdateRequestDto.Email;
-            matchingPerson.Dob = personUpdateRequestDto.Dob;
-            matchingPerson.Address = personUpdateRequestDto.Address;
-            matchingPerson.CountryId = personUpdateRequestDto.CountryId;
-            matchingPerson.Gender = personUpdateRequestDto.Gender.ToString();
-            matchingPerson.ReceiveNewsLetters = personUpdateRequestDto.ReceiveNewsLetters;
-
-            await _dbContext.SaveChangesAsync();
+            await _personRepository.UpdatePerson(matchingPerson);
 
             return _mapper.Map<PersonResponseDto>(matchingPerson);
 
@@ -162,11 +152,9 @@ namespace Services.PersonService
         public async Task<bool> DeletePerson(Guid? personId)
         {
             if (personId == null) throw new ArgumentNullException("personId cant be null");
-            Person? person = await _dbContext.Persons.FirstOrDefaultAsync(x=>x.PersonId==personId);
+            Person? person =  await _personRepository.GetPersonById(personId.Value);
             if (person == null) return false;
-
-            _dbContext.Persons.Remove(person);
-            await _dbContext.SaveChangesAsync();
+            await _personRepository.DeletePersonById(personId);
             return true;
         }
     }

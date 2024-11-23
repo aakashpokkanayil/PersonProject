@@ -3,11 +3,6 @@ using Entities.CountryEntity;
 using Entities.PersonEntity;
 using ServiceContracts.DTOs.CountryDtos;
 using ServiceContracts.DTOs.PersonsDtos;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Services.Mapper
 {
@@ -25,7 +20,7 @@ namespace Services.Mapper
             CreateMap<PersonAddRequestDto, Person>();
             CreateMap<Person, PersonResponseDto>()
                 .ForMember(dest => dest.Age, opt => opt.MapFrom(src => (DateTime.Now.Year - Convert.ToDateTime(src.Dob).Year)))
-                .ForMember(dest => dest.CountryId, opt => opt.MapFrom(src => src.Country == null ? null : src.Country.CountryName));
+                .ForMember(dest => dest.Country, opt => opt.MapFrom(src => src.Country == null ? null : src.Country.CountryName));
 
 
             CreateMap<PersonUpdateRequestDto, Person>()

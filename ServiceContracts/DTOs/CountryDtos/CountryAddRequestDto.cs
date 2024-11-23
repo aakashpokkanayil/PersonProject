@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ServiceContracts.DTOs.CountryDtos
+﻿namespace ServiceContracts.DTOs.CountryDtos
 {
     /// <summary>
     /// - Client sends request in the form of CountryAddRequestDto

@@ -11,7 +11,7 @@ using PersonData.PersonsContext;
 
 namespace PersonData.Migrations
 {
-    [DbContext(typeof(PersonsDbContext))]
+    [DbContext(typeof(ApplicationDbContext))]
     [Migration("20241114084716_test")]
     partial class test
     {

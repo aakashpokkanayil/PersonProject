@@ -1,13 +1,10 @@
 ﻿using AutoMapper;
 using Entities.CountryEntity;
-using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using RepositoryContracts.Interfaces;
 using ServiceContracts.DTOs.CountryDtos;
 using ServiceContracts.Interfaces.Country;
 using Services.CountryService;
-using Services.Mapper;
-using System.Collections.Generic;
-using System.Diagnostics.Metrics;
 
 namespace ProjectTest.CountryUnitTests
 {
@@ -18,11 +15,16 @@ namespace ProjectTest.CountryUnitTests
     {
         private readonly ICountriesService _countriesService;
         private readonly Mock<IMapper> _mockMapper;
+        private readonly Mock<ICountryRepository> _mockCountryRepository;
+        private readonly ICountryRepository _countryRepository;
 
         public CountriesServiceTest()
         {
+           
             _mockMapper = new Mock<IMapper>();
-            _countriesService = new CountriesService(_mockMapper.Object,null);
+            _mockCountryRepository = new Mock<ICountryRepository>();
+            _countryRepository = _mockCountryRepository.Object;
+            _countriesService = new CountriesService(_mockMapper.Object, _countryRepository);
         }
 
         #region AddCountry
@@ -69,9 +71,13 @@ namespace ProjectTest.CountryUnitTests
             var guid = Guid.NewGuid();
             CountryAddRequestDto? countryAddRequestDto1 = new CountryAddRequestDto();
             countryAddRequestDto1.CountryName = "USA";
-
-            CountryAddRequestDto? countryAddRequestDto2 = new CountryAddRequestDto();
-            countryAddRequestDto2.CountryName = "USA";
+            
+            Country country = new Country()
+            {
+                CountryId = guid,
+                CountryName ="USA"
+            };
+           
 
             _mockMapper.Setup(m => m.Map<Country>(It.IsAny<CountryAddRequestDto>()))
                 .Returns((CountryAddRequestDto c) => new Country { CountryName = c.CountryName });
@@ -79,13 +85,17 @@ namespace ProjectTest.CountryUnitTests
             _mockMapper.Setup(m => m.Map<CountryResponseDto>(It.IsAny<Country>()))
                 .Returns((Country c) => new CountryResponseDto { CountryId = c.CountryId, CountryName = c.CountryName });
 
+            _mockCountryRepository.Setup(m=>m.GetCountryByCountryName(It.IsAny<string>()))
+                .ReturnsAsync(country);
+
+
+
             // Assert
             await Assert.ThrowsAsync<ArgumentException>(
                     // Act
                    async () =>
                     {
                       await  _countriesService.AddCountry(countryAddRequestDto1);
-                      await  _countriesService.AddCountry(countryAddRequestDto2);
                     }
             );
         }
@@ -100,6 +110,11 @@ namespace ProjectTest.CountryUnitTests
             // Arrange
             CountryAddRequestDto? expectedCountry = new CountryAddRequestDto();
             expectedCountry.CountryName = "Japan";
+            Country country = new Country()
+            {
+                CountryId = Guid.NewGuid(),
+                CountryName = "Japan"
+            };
 
 
 
@@ -112,15 +127,17 @@ namespace ProjectTest.CountryUnitTests
                     countries.Select((country) => new CountryResponseDto() { CountryId = country.CountryId, CountryName = country.CountryName }).ToList()
                 );
             //_mapperMock.Setup(m => m.Map<DestinationType>(It.IsAny<SourceType>()))
+            _mockCountryRepository.Setup(m => m.GetCountryByCountryName(It.IsAny<string>()))
+              .ReturnsAsync(null as Country);
+            _mockCountryRepository.Setup(m => m.AddCountry(It.IsAny<Country>()))
+             .ReturnsAsync(country);
 
             // Act
             CountryResponseDto actualCountry = await _countriesService.AddCountry(expectedCountry);
-            List<CountryResponseDto> actualResponseList = await _countriesService.GetAllCountries();
 
             // Assert
             Assert.True(actualCountry.CountryId != Guid.Empty);
             Assert.Equal(expectedCountry.CountryName, actualCountry.CountryName);
-            Assert.Contains(actualCountry, actualResponseList);
             // CountryResponseDto to compair this we have to override Equal method in CountryResponseDto.
         }
         #endregion
@@ -133,10 +150,13 @@ namespace ProjectTest.CountryUnitTests
         public async Task  GetAllCountries_EmptyList()
         {
             //Arrange
+            List<Country> countries= new List<Country>();
             _mockMapper.Setup(m => m.Map<List<CountryResponseDto>>(It.IsAny<List<Country>>()))
                 .Returns((List<Country> countries) =>
                    countries.Select((country) => new CountryResponseDto { CountryId = country.CountryId, CountryName = country.CountryName }).ToList()
                 );
+            _mockCountryRepository.Setup(m => m.GetAllCountries())
+               .ReturnsAsync(countries);
             //Act
             List<CountryResponseDto> actualCountryResponse = await _countriesService.GetAllCountries();
 
@@ -154,6 +174,19 @@ namespace ProjectTest.CountryUnitTests
             List<CountryAddRequestDto> countryAddRequest = new List<CountryAddRequestDto>() {
                 new CountryAddRequestDto(){ CountryName="India"},
                 new CountryAddRequestDto(){ CountryName="Japan"}
+            };
+            List<Country> countries = new List<Country>()
+            {
+                new Country()
+                {
+                    CountryId = Guid.NewGuid(),
+                    CountryName = "India"
+                },
+                new Country()
+                {
+                    CountryId = Guid.NewGuid(),
+                    CountryName = "Japan"
+                }
             };
 
             _mockMapper.Setup(m => m.Map<Country>(It.IsAny<CountryAddRequestDto>()))
@@ -178,20 +211,12 @@ namespace ProjectTest.CountryUnitTests
             //List<CountryResponseDto> countryResponseList = _mapper.Map<List<CountryResponseDto>>(_countries);
 
             //Act
-            foreach (var item in countryAddRequest)
-            {
-
-                expectedCountryResponse.Add(await _countriesService.AddCountry(item));
-            }
+            _mockCountryRepository.Setup(m=>m.GetAllCountries())
+                .ReturnsAsync(countries);
+            
 
             List<CountryResponseDto> actualcountryResponse =await _countriesService.GetAllCountries();
 
-            //Assert
-            foreach (var expected_country in expectedCountryResponse)
-            {
-                Assert.Contains(expected_country, actualcountryResponse);
-                // CountryResponseDto to compair this we have to override Equal method in CountryResponseDto.
-            }
 
             Assert.Contains(actualcountryResponse, x => x.CountryName == "India");
             Assert.Contains(actualcountryResponse, x => x.CountryName == "Japan");
@@ -222,18 +247,29 @@ namespace ProjectTest.CountryUnitTests
         public async Task  GetCountryById_ValidCountryId()
         {
             //Arrange
+            Guid countryId = Guid.NewGuid();
             CountryAddRequestDto countryAddRequest = new CountryAddRequestDto()
             {
                 CountryName = "India",
             };
+            Country country = new Country()
+            {
+                CountryId = countryId,
+                CountryName = "Japan"
+            };
+            CountryResponseDto expectedcountryResponse = new CountryResponseDto()
+            {
+                CountryId = countryId,
+                CountryName = "Japan"
+            };
+            _mockCountryRepository.Setup(m=>m.GetCountryById(It.IsAny<Guid>())).ReturnsAsync(country);
             _mockMapper.Setup(m => m.Map<Country>(It.IsAny<CountryAddRequestDto>()))
                 .Returns((CountryAddRequestDto c) => new Country { CountryName = c.CountryName });
             _mockMapper.Setup(m => m.Map<CountryResponseDto>(It.IsAny<Country>()))
                 .Returns((Country c) => new CountryResponseDto { CountryId = c.CountryId, CountryName = c.CountryName });
-            CountryResponseDto expectedcountryResponse = await _countriesService.AddCountry(countryAddRequest);
 
             //Act
-            CountryResponseDto? actualCountryResponse = await _countriesService.GetCountryById(expectedcountryResponse.CountryId);
+            CountryResponseDto? actualCountryResponse = await _countriesService.GetCountryById(countryId);
 
             //Assert
             Assert.Equal(expectedcountryResponse, actualCountryResponse);
