@@ -12,20 +12,28 @@ namespace ProjectTest.ControllerTests
 {
     public class PersonsControllerTest
     {
-        private readonly IPersonsService _personsService;
+        private readonly IPersonsAdderService _personsAdderService;
+        private readonly IPersonsGetterService _personsGetterService;
+        private readonly IPersonsSorterService _personsSorterService;
         private readonly ICountriesService _countriesService;
         private readonly ILogger<PersonController> _logger;
 
-        private readonly Mock<IPersonsService> _mockPersonsService;
+        private readonly Mock<IPersonsAdderService> _mockPersonsAdderService;
+        private readonly Mock<IPersonsGetterService> _mockPersonsGetterService;
+        private readonly Mock<IPersonsSorterService> _mockPersonsSorterService;
         private readonly Mock<ICountriesService> _mockCountriesService;
         private readonly Mock<ILogger<PersonController>> _mockLogger;
         public PersonsControllerTest()
         {
             _mockCountriesService = new Mock<ICountriesService>();
-            _mockPersonsService = new Mock<IPersonsService>();
+            _mockPersonsAdderService = new Mock<IPersonsAdderService>();
+            _mockPersonsGetterService = new Mock<IPersonsGetterService>();
+            _mockPersonsSorterService = new Mock<IPersonsSorterService>();
             _mockLogger = new Mock<ILogger<PersonController>>();
 
-            _personsService = _mockPersonsService.Object;
+            _personsAdderService = _mockPersonsAdderService.Object;
+            _personsGetterService = _mockPersonsGetterService.Object; 
+            _personsSorterService = _mockPersonsSorterService.Object;
             _countriesService = _mockCountriesService.Object;
             _logger = _mockLogger.Object;
         }
@@ -61,11 +69,11 @@ namespace ProjectTest.ControllerTests
                 }
             };
 
-            PersonController personController = new PersonController(_personsService, _countriesService, _logger);
+            PersonController personController = new PersonController(_countriesService, _logger,_personsAdderService, _personsGetterService,_personsSorterService);
 
-            _mockPersonsService.Setup(x => x.GetPersonByFilter(It.IsAny<string>(), It.IsAny<string>()))
+            _mockPersonsGetterService.Setup(x => x.GetPersonByFilter(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(personResponseDtos);
-            _mockPersonsService.Setup(x => x.GetSortedPersons(It.IsAny<List<PersonResponseDto>>(), It.IsAny<string>(), It.IsAny<SortOderOption>()))
+            _mockPersonsSorterService.Setup(x => x.GetSortedPersons(It.IsAny<List<PersonResponseDto>>(), It.IsAny<string>(), It.IsAny<SortOderOption>()))
                 .Returns(personResponseDtos);
             //Act
             IActionResult actionResult = await personController.Index("PersonName", "PersonName", SortOderOption.ASC.ToString());
@@ -112,9 +120,9 @@ namespace ProjectTest.ControllerTests
             };
            
             _mockCountriesService.Setup(x=>x.GetAllCountries()).ReturnsAsync(countries);
-            _mockPersonsService.Setup(x=>x.AddPerson(It.IsAny<PersonAddRequestDto>())).ReturnsAsync(personResponseDto);
+            _mockPersonsAdderService.Setup(x=>x.AddPerson(It.IsAny<PersonAddRequestDto>())).ReturnsAsync(personResponseDto);
 
-            PersonController personController = new PersonController(_personsService, _countriesService, _logger);
+            PersonController personController = new PersonController(_countriesService, _logger, _personsAdderService, _personsGetterService, _personsSorterService);
 
            
             //Act

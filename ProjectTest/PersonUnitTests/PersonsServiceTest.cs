@@ -14,7 +14,11 @@ namespace ProjectTest.PersonUnitTests
 {
     public class PersonsServiceTest
     {
-        private readonly IPersonsService? _personsService;
+        private readonly IPersonsAdderService? _personsAdderService;
+        private readonly IPersonsSorterService? _personsSorterService;
+        private readonly IPersonsGetterService? _personGetterService;
+        private readonly IPersonsUpdaterService? _personUpdaterService;
+        private readonly IPersonsDeleterService? _personDeleterService;
         private readonly Mock<IMapper>? _mockMapper;
         private PersonAddRequestDto? _personAddRequestDto = null;
         private PersonAddRequestDto? _personAddRequestDto2 = null;
@@ -24,19 +28,25 @@ namespace ProjectTest.PersonUnitTests
         private CountryAddRequestDto? _countryAddRequestDto3 = null;
         private PersonUpdateRequestDto? _personUpdateRequestDto = null;
         private readonly IPersonRepository _personRepository;
+
         private readonly Mock<IPersonRepository> _mockPersonRepository;
-        private readonly Mock<ILogger<PersonsServices>> _mockLogger;
-        private readonly ILogger<PersonsServices> _logger;
+
+        private readonly Mock<ILogger<PersonsAdderServices>> _mockLogger;
+        private readonly ILogger<PersonsAdderServices> _logger;
 
         public PersonsServiceTest()
         {
             _mockMapper = new Mock<IMapper>();
             _mockPersonRepository= new Mock<IPersonRepository>();
-            _mockLogger= new Mock<ILogger<PersonsServices>>();   
+            _mockLogger= new Mock<ILogger<PersonsAdderServices>>();   
             _personRepository= _mockPersonRepository.Object;
             _logger=_mockLogger.Object;
 
-            _personsService = new PersonsServices(_mockMapper.Object, _personRepository, _logger);
+            _personGetterService = new PersonsGetterServices(_mockMapper.Object, _personRepository, _logger);
+            _personsAdderService = new PersonsAdderServices(_mockMapper.Object, _personRepository, _logger);
+            _personsSorterService = new PersonsSorterServices(_mockMapper.Object, _personRepository, _logger);
+            _personUpdaterService = new PersonsUpdaterServices(_mockMapper.Object, _personRepository, _logger);
+            _personDeleterService = new PersonsDeleterServices(_mockMapper.Object, _personRepository, _logger);
 
             Initializeobjects();
             mockPersonMapper();
@@ -161,7 +171,7 @@ namespace ProjectTest.PersonUnitTests
             await Assert.ThrowsAsync<ArgumentNullException>(async () =>
             {
                 //Act
-               await _personsService.AddPerson(personAddRequestDto);
+               await _personsAdderService.AddPerson(personAddRequestDto);
             });
 
 
@@ -180,7 +190,7 @@ namespace ProjectTest.PersonUnitTests
             await Assert.ThrowsAsync<ArgumentException>(async () =>
             {
                 //Act
-               await _personsService.AddPerson(personAddRequestDto);
+               await _personsAdderService.AddPerson(personAddRequestDto);
             });
         }
 
@@ -205,7 +215,7 @@ namespace ProjectTest.PersonUnitTests
 
             //Act
 
-            PersonResponseDto? actualPersonResponse = await _personsService.AddPerson(_personAddRequestDto);
+            PersonResponseDto? actualPersonResponse = await _personsAdderService.AddPerson(_personAddRequestDto);
 
 
             //Assert
@@ -223,7 +233,7 @@ namespace ProjectTest.PersonUnitTests
                  .ReturnsAsync(new List<Person>());
 
             //Act
-            List<PersonResponseDto>? personResponseDto = await _personsService.GetAllPerson();
+            List<PersonResponseDto>? personResponseDto = await _personGetterService.GetAllPerson();
             //Assert
             Assert.Empty(personResponseDto);
         }
@@ -239,7 +249,7 @@ namespace ProjectTest.PersonUnitTests
                  });
           
             //Act
-            List<PersonResponseDto>? personResponseList = await _personsService.GetAllPerson();
+            List<PersonResponseDto>? personResponseList = await _personGetterService.GetAllPerson();
             //Assert
             Assert.NotNull(personResponseList);
         }
@@ -251,7 +261,7 @@ namespace ProjectTest.PersonUnitTests
             // Arrange
             Guid? personID = null;
             // Act
-            PersonResponseDto? personResponseDto = await _personsService.GetPersonById(personID);
+            PersonResponseDto? personResponseDto = await _personGetterService.GetPersonById(personID);
             // Assert
             Assert.Null(personResponseDto);
 
@@ -275,7 +285,7 @@ namespace ProjectTest.PersonUnitTests
                 });
 
              // Act
-             PersonResponseDto? actualPersonResponse = await _personsService.GetPersonById(guid);
+             PersonResponseDto? actualPersonResponse = await _personGetterService.GetPersonById(guid);
             // Assert
             Assert.NotNull(actualPersonResponse);
             Assert.True(actualPersonResponse.PersonId == guid);
@@ -306,7 +316,7 @@ namespace ProjectTest.PersonUnitTests
             //Act
 
             List<PersonResponseDto> actualPersonResponseList= 
-               await _personsService.GetPersonByFilter(nameof(Person.PersonName),"");
+               await _personGetterService.GetPersonByFilter(nameof(Person.PersonName),"");
 
             // Assert
             Assert.NotNull(actualPersonResponseList);
@@ -338,7 +348,7 @@ namespace ProjectTest.PersonUnitTests
             //Act
 
             List<PersonResponseDto> actualPersonResponseList =
-               await _personsService.GetPersonByFilter(nameof(Person.PersonName), "v");
+               await _personGetterService.GetPersonByFilter(nameof(Person.PersonName), "v");
 
             // Assert
 
@@ -380,7 +390,7 @@ namespace ProjectTest.PersonUnitTests
             //Act
 
             List<PersonResponseDto> actualPersonResponseList =
-                _personsService.GetSortedPersons(personsResponse, nameof(Person.PersonName), SortOderOption.DESC);
+                _personsSorterService.GetSortedPersons(personsResponse, nameof(Person.PersonName), SortOderOption.DESC);
 
             // Assert
 
@@ -414,7 +424,7 @@ namespace ProjectTest.PersonUnitTests
             //Act
 
             List<PersonResponseDto> actualPersonResponseList =
-                _personsService.GetSortedPersons(personsResponse, nameof(Person.PersonName), SortOderOption.ASC);
+                _personsSorterService.GetSortedPersons(personsResponse, nameof(Person.PersonName), SortOderOption.ASC);
 
             // Assert
 
@@ -440,7 +450,7 @@ namespace ProjectTest.PersonUnitTests
             // Assert
             await Assert.ThrowsAsync<ArgumentNullException>(async() => {
                 // Act
-               await _personsService.UpdatePerson(personUpdateRequestDto);
+               await _personUpdaterService.UpdatePerson(personUpdateRequestDto);
             });
 
         }
@@ -456,7 +466,7 @@ namespace ProjectTest.PersonUnitTests
             // Assert
             await Assert.ThrowsAsync<ArgumentException>(async () => {
                 // Act
-               await _personsService.UpdatePerson(personUpdateRequestDto);
+               await _personUpdaterService.UpdatePerson(personUpdateRequestDto);
             });
 
         }
@@ -505,7 +515,7 @@ namespace ProjectTest.PersonUnitTests
 
 
             // Act
-            PersonResponseDto? actualPersonResponse = await _personsService.UpdatePerson(_personUpdateRequestDto);
+            PersonResponseDto? actualPersonResponse = await _personUpdaterService.UpdatePerson(_personUpdateRequestDto);
 
             // Assert
             Assert.Equal(personResponseDto, actualPersonResponse);
@@ -522,7 +532,7 @@ namespace ProjectTest.PersonUnitTests
             _mockPersonRepository.Setup(m => m.GetPersonById(It.IsAny<Guid>()))
                 .ReturnsAsync(null as Person);
             //Act
-            bool isdeleted = await _personsService.DeletePerson(personId);
+            bool isdeleted = await _personDeleterService.DeletePerson(personId);
 
             //Assert
             Assert.False(isdeleted);
@@ -551,7 +561,7 @@ namespace ProjectTest.PersonUnitTests
 
 
             //Act
-            bool isdeleted =await _personsService.DeletePerson(person.PersonId);
+            bool isdeleted =await _personDeleterService.DeletePerson(person.PersonId);
 
             //Assert
             Assert.True(isdeleted); 

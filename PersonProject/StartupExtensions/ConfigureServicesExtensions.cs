@@ -23,7 +23,9 @@ namespace PersonProject.StartupExtensions
                 options.Filters.Add(new ResponseHeaderActionFilter("X-CustomGlobal-Key", "Custom-Value", 1));
             });
             services.AddScoped<ICountriesService, CountriesService>();
-            services.AddScoped<IPersonsService, PersonsServices>();
+            services.AddScoped<IPersonsAdderService, PersonsAdderServices>();
+            services.AddScoped<IPersonsGetterService, PersonsGetterServices>();
+            services.AddScoped<IPersonsSorterService, PersonsSorterServices>();
             services.AddScoped<ICountryRepository, CountriesRepository>();
             services.AddScoped<IPersonRepository, PersonsRepository>();
             services.AddAutoMapper(typeof(MappingProfile));

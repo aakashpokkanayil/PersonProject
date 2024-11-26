@@ -14,15 +14,25 @@ namespace PersonProject.Controllers
     [ResponseHeaderActionFilter("X-CustomController-Key", "Custom-Value", 3)]
     public class PersonController : Controller
     {
-        private readonly IPersonsService _personsService;
         private readonly ICountriesService _countriesService;
         private readonly ILogger<PersonController> _logger;
+        private readonly IPersonsAdderService _personsAdderService;
+        private readonly IPersonsGetterService _personGetterService;
+        private readonly IPersonsSorterService _personSorterService;
 
-        public PersonController(IPersonsService personsService,ICountriesService countriesService,ILogger<PersonController> logger)
+        public PersonController(
+            ICountriesService countriesService,
+            ILogger<PersonController> logger,
+            IPersonsAdderService personsAdderService,
+            IPersonsGetterService personGetterService,
+            IPersonsSorterService personSorterService)
         {
-            _personsService = personsService;
+           
             _countriesService = countriesService;
             _logger = logger;
+            _personsAdderService = personsAdderService;
+            _personGetterService = personGetterService;
+            _personSorterService = personSorterService;
         }
 
         [Route("[action]")]
@@ -39,11 +49,11 @@ namespace PersonProject.Controllers
             _logger.LogDebug($"searchBy:{searchBy}, searchString:{searchString}, sortBy:{sortBy}, sortOrder:{sortOrder}");
 
             
-            List<PersonResponseDto>? personResponse = await _personsService.GetPersonByFilter(searchBy, searchString);
+            List<PersonResponseDto>? personResponse = await _personGetterService.GetPersonByFilter(searchBy, searchString);
             //ViewBag.CurrentSearchBy = searchBy;
             //ViewBag.CurrentSearchString = searchString;
 
-            personResponse = _personsService.GetSortedPersons(personResponse, sortBy, sortOrder);
+            personResponse = _personSorterService.GetSortedPersons(personResponse, sortBy, sortOrder);
             //ViewBag.CurrentSortBy = sortBy;
             //ViewBag.CurrentSortOrder = sortOrder.ToString();
             return View(personResponse);
@@ -66,7 +76,7 @@ namespace PersonProject.Controllers
         public async Task<IActionResult> Create(PersonAddRequestDto personAddRequest)
         {
             
-            PersonResponseDto? personResponse= await _personsService.AddPerson(personAddRequest);
+            PersonResponseDto? personResponse= await _personsAdderService.AddPerson(personAddRequest);
             return RedirectToAction("Index", "Person");
 
         }
